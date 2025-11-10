@@ -38,9 +38,9 @@ on:
         default: true
       use_kpm:
         description: '是否开启KPM功能?'
-        required: true
+        required: false
         type: boolean
-        default: true
+        default: false
       onlyAk3:
         description: '仅上传AK3压缩包?(无boot,下载更快)'
         required: false
