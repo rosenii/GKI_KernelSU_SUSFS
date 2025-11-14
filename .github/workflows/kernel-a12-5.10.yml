@@ -45,7 +45,7 @@ on:
         description: '仅上传AK3压缩包?(无boot,下载更快)'
         required: false
         type: boolean
-        default: false
+        default: true
       build_time:
         description: '设置内核构建时间(格式见仓库说明)'
         required: false
@@ -62,6 +62,10 @@ jobs:
         - sub_level: "226"
           os_patch_level: "2024-11"
           revision: "r8"
+
+        - sub_level: "240"
+          os_patch_level: "2024-09"
+          revision: "r5"
   
     uses: ./.github/workflows/gki-kernel.yml
     secrets: inherit
