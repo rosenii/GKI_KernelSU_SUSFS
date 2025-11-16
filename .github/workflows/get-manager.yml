@@ -139,6 +139,7 @@ jobs:
             fi
 
             # 1. 获取指定顺序的成功构建的ID
+
             BUILD_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/$REPO/actions/workflows/$FILENAME/runs?status=success" |
               jq -r '.workflow_runs['"$NUMBER"'].id')
@@ -148,15 +149,14 @@ jobs:
             ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/$REPO/actions/runs/$BUILD_ID/artifacts")
 
-            # 通用大小写匹配 Manager / manager
             result=$(echo "$ARTIFACTS" | jq -r --arg ksum "$KSUM" '.artifacts[] | select(.name | ascii_downcase | contains($ksum | ascii_downcase)) | .name')
-            DOWNLOAD_URL=$(echo "$ARTIFACTS" | jq -r --arg ksum "$KSUM" '.artifacts[] | select(.name | ascii_downcase | contains($ksum | ascii_downcase)) | .archive_download_url')
 
             if [ -z "$result" ]; then
               echo "没有找到包含 '$KSUM' 的项"
               NUMBER=$((NUMBER + 1))
             else
               echo "$result"
+              DOWNLOAD_URL=$(echo "$ARTIFACTS" | jq -r --arg ksum "$KSUM" '.artifacts[] | select(.name | ascii_downcase | contains($ksum | ascii_downcase)) | .archive_download_url')
               break
             fi
 
@@ -194,6 +194,8 @@ jobs:
           
           echo "正在检查调用者: ${{ github.caller_workflow }}"
 
+          # 由用户调用或是由作者上传到release?
+
           if [ "${{ github.workflow }}" == "测试发布" ]; then
             echo "这是测试发布工作流"
             mkdir -p susfs-module && mv $NAME susfs-module
@@ -220,52 +222,3 @@ jobs:
         with:
           name: susfs-${{ env.SUSFS_NAME }}
           path: ./susfs-module/*
-          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/$REPO/actions/runs/$LATEST_RUN_ID/artifacts")
-
-          # 通用大小写匹配 Manager
-          ARTIFACT_NAME=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | ascii_downcase | contains("manager")) | .name')
-          ARTIFACT_URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | ascii_downcase | contains("manager")) | .archive_download_url')
-
-          if [ -z "$ARTIFACT_URL" ]; then
-            echo "未找到 Manager artifact!"
-            exit 1
-          fi
-
-          TARGET_FILE="$VARIANT-Manager(${{ env.KSU_VERSION }}).zip"
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o "$TARGET_FILE" "$ARTIFACT_URL"
-          echo "Manager 文件已下载: $TARGET_FILE"
-          unzip -q "$TARGET_FILE" -d manager && rm -f "$TARGET_FILE"
-
-      - name: 下载 SUSFS 模块
-        id: add_SUSFS
-        continue-on-error: true
-        run: |
-          BUILD_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/workflows/build.yml/runs?status=success&per_page=1" \
-            | jq -r '.workflow_runs[0].id')
-
-          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs/$BUILD_ID/artifacts")
-
-          ARTIFACT_NAME=$(echo "$ARTIFACTS" | jq -r '.artifacts[0].name')
-          ARTIFACT_URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[0].archive_download_url')
-          TARGET_FILE="susfs-$ARTIFACT_NAME.zip"
-
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o "$TARGET_FILE" "$ARTIFACT_URL"
-          mkdir -p susfs-module && unzip -q "$TARGET_FILE" -d susfs-module && rm -f "$TARGET_FILE"
-          echo "SUSFS 模块已下载: $TARGET_FILE"
-
-      - name: 上传 KernelSU Manager
-        if: steps.add_KSU.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.kernelsu_variant }}-Manager(${{ env.KSU_VERSION }})
-          path: manager/*
-
-      - name: 上传 SUSFS 模块
-        if: steps.add_SUSFS.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: susfs-${{ env.SUSFS_NAME }}
-          path: susfs-module/*
