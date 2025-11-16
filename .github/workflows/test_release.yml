@@ -5,9 +5,8 @@ permissions:
   actions: write   # Allows triggering actions
   
 on:
-  push:
-    branches:
-      - dev    # 监听 main 分支更新
+  schedule:
+   - cron: '48 1 * * *'
   workflow_dispatch:
     inputs:
       make_release:
