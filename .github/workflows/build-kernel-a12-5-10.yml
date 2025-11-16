@@ -5,7 +5,10 @@ permissions:
   actions: write   # Allows triggering actions
   
 on:
-  workflow_dispatch:
+ push:
+  branches:
+      - main    # 监听 main 分支更新
+ workflow_dispatch:  # 保留手动触发
     inputs:
       kernelsu_variant:
         # description: "选择 KernelSU | 注意:选中MKSU时为标准版"
