@@ -380,19 +380,28 @@ jobs:
               -f ref="refs/tags/${NEW_TAG}" \
               -f sha="$(git rev-parse HEAD)"
 
-      # 上传 KSU 管理器 & SUS模块（加 --clobber）
-      - name: 上传KSU管理器 & SUS模块
-        continue-on-error: true
-        run: |
-            echo "Uploading KSU管理器"
-            gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/*Manager*/*" --clobber
-            gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/susfs-*/*" --clobber
+      # 下载构建产物
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./downloaded-artifacts
 
-      # 动态上传发布资产（加 --clobber）
-      - name: 动态上传发布资产
+      # 创建 GitHub Release
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.NEW_TAG }}
+          prerelease: true
+          release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.RELEASE_NOTES }}
+
+      # 上传所有构建产物
+      - name: Upload All Build Artifacts
         run: |
-          for file in ./downloaded-artifacts/*_kernel-*/*; do
-              [ -d "$file" ] && continue
+          shopt -s nullglob
+          # 递归找到所有文件
+          files=$(find ./downloaded-artifacts -type f)
+          for file in $files; do
               echo "Uploading $file..."
               gh release upload ${{ env.NEW_TAG }} "$file" --clobber
           done
