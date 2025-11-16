@@ -51,7 +51,7 @@ on:
         default: true
       use_kpm:
         description: '是否开启KPM功能?'
-        required: false
+        required: true
         type: boolean
         default: false
       get_manager:
