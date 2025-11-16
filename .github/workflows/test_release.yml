@@ -1,4 +1,4 @@
-name: 测试发布
+name: 自动发布
 
 permissions:
   contents: write  # Allow writing to repository contents (for pushing tags)
@@ -63,6 +63,11 @@ on:
         required: true
         type: boolean
         default: true
+      onlyAk3:
+        description: '仅上传AK3压缩包?(无boot,下载更快)'
+        required: true
+        type: boolean
+        default: true
 jobs:
   get_manager:
     uses: ./.github/workflows/get-manager.yml
@@ -82,6 +87,7 @@ jobs:
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
       use_bbg: ${{ inputs.use_bbg }}
+      onlyAk3: ${{ inputs.onlyAk3 || false }}
 
   # build-kernel-a13-5-10:
   #   uses: ./.github/workflows/kernel-a13-5.10.yml
@@ -107,6 +113,7 @@ jobs:
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
       use_bbg: ${{ inputs.use_bbg }}
+      onlyAk3: ${{ inputs.onlyAk3 || false }}
 
   # build-kernel-a14-5-15:
   #   uses: ./.github/workflows/kernel-a14-5.15.yml
@@ -132,6 +139,7 @@ jobs:
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
       use_bbg: ${{ inputs.use_bbg }}
+      onlyAk3: ${{ inputs.onlyAk3 || false }}
 
   build-kernel-a15-6-6:
     uses: ./.github/workflows/kernel-a15-6.6.yml
@@ -145,6 +153,7 @@ jobs:
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
       use_bbg: ${{ inputs.use_bbg }}
+      onlyAk3: ${{ inputs.onlyAk3 || false }}
 
   trigger-release:
     runs-on: ubuntu-latest
