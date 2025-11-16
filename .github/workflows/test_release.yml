@@ -351,16 +351,17 @@ jobs:
           echo "点击下方 **【Assets】** 展开资源,底部还包含最新 **KSU管理器、CI构建SUSFS模块** " >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           
-      # Get the Latest Tag from GitHub
+      # 生成和创建新标签（无 git push）
       - name: 生成和创建新标签
+        id: newtag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            # Fetch the latest tag from GitHub (this is the latest tag based on the GitHub API)
             SUS_VERSION=${{ needs.get_manager.outputs.susVer }}
-            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name'| sed 's/-.*//')
-            echo $SUS_VERSION
-            echo $LATEST_TAG
+            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' | sed 's/-.*//')
+
+            echo "$SUS_VERSION"
+            echo "$LATEST_TAG"
 
             # 判断是否相等
             if [ "$SUS_VERSION" = "$LATEST_TAG" ]; then
@@ -372,17 +373,20 @@ jobs:
             fi
 
             NEW_TAG=$(echo "$LATEST_TAG" | awk -F'-r' '{suffix=$2; if (!suffix) suffix=0; suffix++; printf "%s-r%d", $1, suffix}')
-            
-            
-            # Output the new tag to be used
             echo "New tag: $NEW_TAG"
-            
-            # Set the new tag as an environment variable to be used in later steps
+
+            # 设置环境变量
             echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
-            
-            # Create the tag in the repository
-            git tag $NEW_TAG
-            git push --tags
+
+            # ⚠️ 使用 GitHub API 创建 tag（不 push，不触发权限限制）
+            gh api \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              /repos/$REPO_OWNER/$REPO_NAME/git/refs \
+              -f ref="refs/tags/${NEW_TAG}" \
+              -f sha="$(git rev-parse HEAD)"
+
+            echo "Tag created via GitHub API."
 
       # 下载 A12 的附件（仅当 A12 生成成功或输入为 true 或为空时）
       - name: Download Artifacts
@@ -390,32 +394,33 @@ jobs:
         with:
           path: ./downloaded-artifacts
           
-
-      # 如果 make_release 为 true，则创建 GitHub 发布并上传文件
+      # 创建 Release（使用已生成的 tag）
       - name: Create GitHub Release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.NEW_TAG }}  # Use the generated tag for the release
-          prerelease: true  # Mark the release as a pre-release
-          release_name: ${{ env.RELEASE_NAME }} # Pass the RELEASE_NAME to the action
-          body: ${{ env.RELEASE_NOTES }}  # Pass the RELEASE_NOTES to the action
+          tag_name: ${{ env.NEW_TAG }}
+          prerelease: true
+          release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.RELEASE_NOTES }}
 
+      # 上传 KSU 管理器与 SUS 模块
       - name: 上传KSU管理器 & SUS模块
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            echo "Uploading KSU管理器"
             gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/*Manager*/*"
             gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/susfs-*/*"
 
+      # 动态上传剩余文件
       - name: 动态上传发布资产
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for file in ./downloaded-artifacts/*_kernel-*/*; do
-              # Skip directories
-              if [ -d "$file" ]; then
-                  continue
-              fi
-
-              # Upload the file to the GitHub release
+              [ -d "$file" ] && continue
               echo "Uploading $file..."
               gh release upload ${{ env.NEW_TAG }} "$file"
           done
