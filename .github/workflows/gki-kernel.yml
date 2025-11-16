@@ -56,7 +56,7 @@ on:
       onlyAk3:
         required: true
         type: boolean
-        default: false
+        default: true
       build_time:
         required: false
         type: string
