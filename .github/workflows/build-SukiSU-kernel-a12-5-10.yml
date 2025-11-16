@@ -74,23 +74,23 @@ jobs:
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
-      make_release: false
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_bbg: ${{ inputs.use_bbg }}
-      use_kpm: ${{ inputs.use_kpm }}
-      onlyAk3: ${{ inputs.onlyAk3 }}
-      build_time: ${{ inputs.build_time }}
+     make_release: false
+     kernelsu_variant: SukiSU
+     kernelsu_branch: Stable(标准)
+     version: ""
+     use_zram: true
+     use_bbg: true
+     use_kpm: false
+     onlyAk3: true
+     build_time: ""
+      
 
   get-ksu-manager:
     if: ${{ inputs.get_manager }}
     uses: ./.github/workflows/get-manager.yml
     secrets: inherit
     with:
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_variant: SukiSU
 
   # build-kernel-a13-5-10:
   #   uses: ./.github/workflows/kernel-a13-5.10.yml
