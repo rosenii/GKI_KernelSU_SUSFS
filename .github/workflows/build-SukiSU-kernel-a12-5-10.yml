@@ -74,7 +74,7 @@ jobs:
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
-     make_release: false
+     make_release: true
      kernelsu_variant: SukiSU
      kernelsu_branch: Stable(标准)
      version: ""
