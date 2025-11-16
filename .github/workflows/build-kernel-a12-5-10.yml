@@ -7,7 +7,7 @@ permissions:
 on:
  push:
   branches:
-      - main    # 监听 main 分支更新
+      - dev    # 监听 dev 分支更新
  workflow_dispatch:  # 保留手动触发
     inputs:
       kernelsu_variant:
