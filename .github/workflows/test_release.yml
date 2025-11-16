@@ -6,7 +6,7 @@ permissions:
   
 on:
   schedule:
-   - cron: '2 19 * * *'
+   - cron: '23 19 * * *'
   workflow_dispatch:
     inputs:
       make_release:
