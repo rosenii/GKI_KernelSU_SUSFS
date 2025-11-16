@@ -43,7 +43,7 @@ on:
         default: false
       onlyAk3:
         description: '仅上传AK3压缩包?(无boot,下载更快)'
-        required: false
+        required: true
         type: boolean
         default: true
       build_time:
@@ -59,9 +59,9 @@ jobs:
       matrix:
         include:
         
-        - sub_level: "226"
-          os_patch_level: "2024-11"
-          revision: "r8"
+       # - sub_level: "226"
+       #   os_patch_level: "2024-11"
+        #  revision: "r8"
 
         - sub_level: "240"
           os_patch_level: "2025-09"
