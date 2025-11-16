@@ -149,14 +149,14 @@ jobs:
             ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/$REPO/actions/runs/$BUILD_ID/artifacts")
 
-            result=$(echo "$ARTIFACTS" | jq -r --arg ksum "$KSUM" '.artifacts[] | select(.name | ascii_downcase | contains($ksum | ascii_downcase)) | .name')
+            result=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name=="manager" or .name=="Manager") | .name' | head -n1)
 
             if [ -z "$result" ]; then
               echo "没有找到包含 '$KSUM' 的项"
               NUMBER=$((NUMBER + 1))
             else
               echo "$result"
-              DOWNLOAD_URL=$(echo "$ARTIFACTS" | jq -r --arg ksum "$KSUM" '.artifacts[] | select(.name | ascii_downcase | contains($ksum | ascii_downcase)) | .archive_download_url')
+              DOWNLOAD_URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name=="manager" or .name=="Manager") | .archive_download_url' | head -n1)
               break
             fi
 
