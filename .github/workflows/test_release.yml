@@ -339,19 +339,28 @@ jobs:
           release_name: ${{ env.RELEASE_NAME }}
           body: ${{ env.RELEASE_NOTES }}
 
-      # 上传所有构建产物（按 Name 顺序，覆盖已存在同名 asset）
+      # 上传所有构建产物（按 Name 顺序，覆盖同名 asset）
       - name: Upload All Build Artifacts
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           shopt -s nullglob
-          # 递归查找所有文件，并按文件名排序（Name 顺序）
-          find ./downloaded-artifacts -type f | sort | while IFS= read -r file; do
-            echo "Uploading $file..."
-            gh release upload "${NEW_TAG}" "$file" --clobber
+          echo "准备上传构建产物..."
+          # 遍历 downloaded-artifacts 下每个子目录，只上传压缩包
+          for dir in ./downloaded-artifacts/*; do
+            if [ -d "$dir" ]; then
+              find "$dir" -type f ! -name ".*" | sort | while IFS= read -r file; do
+                echo "Uploading $file..."
+                gh release upload "${NEW_TAG}" "$file" --clobber
+              done
+            fi
           done
 
       - name: Display Files Uploaded
         run: |
-          echo "GitHub release created with the following files:"
-          find ./downloaded-artifacts -type f | sort
+          echo "GitHub release 已上传以下文件:"
+          for dir in ./downloaded-artifacts/*; do
+            if [ -d "$dir" ]; then
+              find "$dir" -type f ! -name ".*" | sort
+            fi
+          done
