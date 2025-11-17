@@ -60,16 +60,13 @@ jobs:
         include:
         - sub_level: "X"
           os_patch_level: "lts"
-       # - sub_level: "226"
-      #    os_patch_level: "2024-11"
-        #  revision: "r8"
-
+        - sub_level: "226"
+          os_patch_level: "2024-11"
+        - sub_level: "237"
+          os_patch_level: "2025-06"
         - sub_level: "245"
           os_patch_level: "2025-09"
-          #revision: "r5"
-       # - sub_level: ""
-       #   os_patch_level: "2025-12"
-  
+        
     uses: ./.github/workflows/gki-kernel.yml
     secrets: inherit
     with:
