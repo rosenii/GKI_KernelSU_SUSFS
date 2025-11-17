@@ -3,17 +3,10 @@ name: 自动发布
 permissions:
   contents: write  # Allow writing to repository contents (for pushing tags)
   actions: write   # Allows triggering actions
-  
 on:
-  push:
-    branches:
-      - dev   # 只在 dev 分支有 push 时触发
-  pull_request:
-    branches:
-      - dev   # 可选，如果你也想在 PR 时触发
-  schedule:
+ schedule:
    - cron: '23 19 * * *'
-  workflow_dispatch:
+ workflow_dispatch:
     inputs:
       make_release:
         description: 'Do you want to create a release?'
