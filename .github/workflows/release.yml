@@ -5,11 +5,9 @@ permissions:
   actions: write
 
 on:
-  push:
-    branches:
-      - dev
+  
   schedule:
-    - cron: '23 19 * * *'
+    - cron: '23 4 * * *'
   workflow_dispatch:
     inputs:
       make_release:
