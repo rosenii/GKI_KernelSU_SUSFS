@@ -1,4 +1,4 @@
-name: Release
+name: Pre-Release
 
 permissions:
   contents: write
@@ -6,156 +6,120 @@ permissions:
 
 on:
   schedule:
-    - cron: '3 4 * * *'
+    - cron: '23 4 * * *'
+
   workflow_dispatch:
     inputs:
-      make_release:
-        type: boolean
-        required: true
-        default: true
       kernelsu_variant:
-        type: choice
+        description: "选择 KernelSU"
         required: true
+        type: choice
         options:
           - Official
           - Next
           - MKSU
           - SukiSU
         default: SukiSU
+
       kernelsu_branch:
-        type: choice
+        description: "选择 KSU 分支"
         required: true
+        type: choice
         options:
           - Stable(标准)
           - Dev(开发)
-          - Other(其他/指定)
         default: Dev(开发)
-      version:
-        type: string
-        required: false
-      use_zram:
-        type: boolean
+
+      make_release:
+        description: "是否创建 Release？"
         required: true
+        type: boolean
         default: true
-      use_bbg:
-        type: boolean
-        required: true
-        default: true
-      use_kpm:
-        type: boolean
-        required: true
-        default: false
+
       get_manager:
-        type: boolean
+        description: "是否构建管理器？"
         required: true
-        default: true
-      onlyAk3:
         type: boolean
-        required: true
         default: true
+
 
 jobs:
-
-  # 统一 Job 输入参数：手动触发就用 inputs；定时触发则走默认值
-  setup-inputs:
+  # 全局默认值（schedule 触发时使用）
+  prepare-inputs:
     runs-on: ubuntu-latest
     outputs:
-      make_release: ${{ steps.set.outputs.make_release }}
       kernelsu_variant: ${{ steps.set.outputs.kernelsu_variant }}
-      kernelsu_branch: ${{ steps.set.outputs.kernelsu_branch }}
-      version: ${{ steps.set.outputs.version }}
-      use_zram: ${{ steps.set.outputs.use_zram }}
-      use_bbg: ${{ steps.set.outputs.use_bbg }}
-      use_kpm: ${{ steps.set.outputs.use_kpm }}
-      get_manager: ${{ steps.set.outputs.get_manager }}
-      onlyAk3: ${{ steps.set.outputs.onlyAk3 }}
-      is_schedule: ${{ steps.set.outputs.is_schedule }}
+      kernelsu_branch:  ${{ steps.set.outputs.kernelsu_branch }}
+      make_release:     ${{ steps.set.outputs.make_release }}
+      get_manager:      ${{ steps.set.outputs.get_manager }}
     steps:
-      - name: Detect event type and load defaults
-        id: set
+      - id: set
         run: |
-          # is this schedule? (true/false)
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "is_schedule=true" >> $GITHUB_OUTPUT
-            echo "make_release=true" >> $GITHUB_OUTPUT
-            echo "kernelsu_variant=SukiSU" >> $GITHUB_OUTPUT
-            echo "kernelsu_branch=Dev(开发)" >> $GITHUB_OUTPUT
-            echo "version=" >> $GITHUB_OUTPUT
-            echo "use_zram=true" >> $GITHUB_OUTPUT
-            echo "use_bbg=true" >> $GITHUB_OUTPUT
-            echo "use_kpm=false" >> $GITHUB_OUTPUT
-            echo "get_manager=true" >> $GITHUB_OUTPUT
-            echo "onlyAk3=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_schedule=false" >> $GITHUB_OUTPUT
-            echo "make_release=${{ inputs.make_release }}" >> $GITHUB_OUTPUT
-            echo "kernelsu_variant=${{ inputs.kernelsu_variant }}" >> $GITHUB_OUTPUT
-            echo "kernelsu_branch=${{ inputs.kernelsu_branch }}" >> $GITHUB_OUTPUT
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
-            echo "use_zram=${{ inputs.use_zram }}" >> $GITHUB_OUTPUT
-            echo "use_bbg=${{ inputs.use_bbg }}" >> $GITHUB_OUTPUT
-            echo "use_kpm=${{ inputs.use_kpm }}" >> $GITHUB_OUTPUT
-            echo "get_manager=${{ inputs.get_manager }}" >> $GITHUB_OUTPUT
-            echo "onlyAk3=${{ inputs.onlyAk3 }}" >> $GITHUB_OUTPUT
-          fi
+          # 当通过 workflow_dispatch 触发时 inputs.* 有值
+          # 当 schedule 触发时 inputs.* = '' → 使用默认值
+          echo "kernelsu_variant=${{ inputs.kernelsu_variant != '' && inputs.kernelsu_variant || 'SukiSU' }}" >> $GITHUB_OUTPUT
+          echo "kernelsu_branch=${{ inputs.kernelsu_branch != '' && inputs.kernelsu_branch || 'Dev(开发)' }}" >> $GITHUB_OUTPUT
+          echo "make_release=${{ inputs.make_release != '' && inputs.make_release || 'true' }}" >> $GITHUB_OUTPUT
+          echo "get_manager=${{ inputs.get_manager != '' && inputs.get_manager || 'true' }}" >> $GITHUB_OUTPUT
 
 
-  # 管理器 job（可选）
+  # 管理器构建
   get_manager:
-    needs: setup-inputs
-    if: ${{ needs.setup-inputs.outputs.get_manager == 'true' }}
+    needs: prepare-inputs
+    if: ${{ needs.prepare-inputs.outputs.get_manager == 'true' }}
     uses: ./.github/workflows/get-manager.yml
     secrets: inherit
     with:
-      kernelsu_variant: ${{ needs.setup-inputs.outputs.kernelsu_variant }}
+      kernelsu_variant: ${{ needs.prepare-inputs.outputs.kernelsu_variant }}
 
-  # 内核构建 job
-  build-kernel-a12-5-10:
-    needs: setup-inputs
+
+  # 内核构建
+  build-kernel:
+    needs: prepare-inputs
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
+      kernelsu_variant: ${{ needs.prepare-inputs.outputs.kernelsu_variant }}
+      kernelsu_branch:  ${{ needs.prepare-inputs.outputs.kernelsu_branch }}
       make_release: true
-      kernelsu_variant: ${{ needs.setup-inputs.outputs.kernelsu_variant }}
-      kernelsu_branch: ${{ needs.setup-inputs.outputs.kernelsu_branch }}
-      version: ${{ needs.setup-inputs.outputs.version }}
-      use_zram: ${{ needs.setup-inputs.outputs.use_zram }}
-      use_kpm: ${{ needs.setup-inputs.outputs.use_kpm }}
-      use_bbg: ${{ needs.setup-inputs.outputs.use_bbg }}
-      onlyAk3: ${{ needs.setup-inputs.outputs.onlyAk3 }}
+
 
   # Release job
-  trigger-release:
-    runs-on: ubuntu-latest
+  release:
     needs:
-      - setup-inputs
-      - build-kernel-a12-5-10
+      - prepare-inputs
       - get_manager
-    if: ${{ needs.setup-inputs.outputs.make_release == 'true' }}
+      - build-kernel
+    if: ${{ needs.prepare-inputs.outputs.make_release == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+
     steps:
       - uses: actions/checkout@v3
 
-      # 下载所有 job 的所有产物
-      - name: Download All Artifacts
+      - name: 下载构建产物
         uses: actions/download-artifact@v4
         with:
-          path: ./all-artifacts
+          path: ./artifacts
           skip-decompression: true
 
-      # 自动创建 tag
-      - name: Generate Tag
-        id: tag
-        run: |
-          TAG="dev-$(date +'%Y%m%d-%H%M')"
-          echo "TAG=$TAG" >> $GITHUB_OUTPUT
-
-      # 创建 release
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.tag.outputs.TAG }}
-          name: "Auto Release ${{ steps.tag.outputs.TAG }}"
-          prerelease: true
-          files: ./all-artifacts/**/*
+      - name: 创建 Release
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          TAG="nightly-$(date +%Y%m%d-%H%M)"
+          gh release create "$TAG" -t "$TAG" -n "自动构建 Release (${TAG})" --prerelease
+
+      - name: 上传所有产物
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          shopt -s nullglob
+          for file in ./artifacts/**/*; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $file"
+              gh release upload "$TAG" "$file" --clobber
+            fi
+          done
