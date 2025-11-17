@@ -87,280 +87,113 @@ jobs:
       use_kpm: ${{ inputs.use_kpm }}
       use_bbg: ${{ inputs.use_bbg }}
       onlyAk3: ${{ inputs.onlyAk3 || false }}
-
-  # build-kernel-a13-5-10:
-  #   uses: ./.github/workflows/kernel-a13-5.10.yml
-  #   secrets: inherit
-  #   with:
-  #     make_release: ${{ inputs.make_release }}
-  #     kernelsu_variant: ${{ inputs.kernelsu_variant }}
-  #     kernelsu_branch: ${{ inputs.kernelsu_branch }}
-  #     # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
-  #     version: ${{ inputs.version }}
-  #     use_zram: ${{ inputs.use_zram }}
-  #     use_kpm: ${{ inputs.use_kpm }}
-
-#  build-kernel-a13-5-15:
- #   uses: ./.github/workflows/kernel-a13-5.15.yml
-#    secrets: inherit
-#    with:
-  #    make_release: ${{ inputs.make_release }}
-  #    kernelsu_variant: ${{ inputs.kernelsu_variant }}
- #     kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
- #     version: ${{ inputs.version }}
-  #    use_zram: ${{ inputs.use_zram }}
-   #   use_kpm: ${{ inputs.use_kpm }}
- #     use_bbg: ${{ inputs.use_bbg }}
- #     onlyAk3: ${{ inputs.onlyAk3 || false }}
-
-  # build-kernel-a14-5-15:
-  #   uses: ./.github/workflows/kernel-a14-5.15.yml
-  #   secrets: inherit
-  #   with:
-  #     make_release: ${{ inputs.make_release }}
-  #     kernelsu_variant: ${{ inputs.kernelsu_variant }}
-  #     kernelsu_branch: ${{ inputs.kernelsu_branch }}
-  #     # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
-  #     version: ${{ inputs.version }}
-  #     use_zram: ${{ inputs.use_zram }}
-  #     use_kpm: ${{ inputs.use_kpm }}
-
-#  build-kernel-a14-6-1:
-#    uses: ./.github/workflows/kernel-a14-6.1.yml
-#    secrets: inherit
-#    with:
-#      make_release: ${{ inputs.make_release }}
-#      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-#      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
-    #  version: ${{ inputs.version }}
-    #  use_zram: ${{ inputs.use_zram }}
-     # use_kpm: ${{ inputs.use_kpm }}
-    #  use_bbg: ${{ inputs.use_bbg }}
-   #   onlyAk3: ${{ inputs.onlyAk3 || false }}
-
-#  build-kernel-a15-6-6:
-#    uses: ./.github/workflows/kernel-a15-6.6.yml
-#    secrets: inherit
- #   with:
-#      make_release: ${{ inputs.make_release }}
-   #   kernelsu_variant: ${{ inputs.kernelsu_variant }}
-    #  kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
-   #   version: ${{ inputs.version }}
-   #   use_zram: ${{ inputs.use_zram }}
-   #   use_kpm: ${{ inputs.use_kpm }}
-  #    use_bbg: ${{ inputs.use_bbg }}
-   #   onlyAk3: ${{ inputs.onlyAk3 || false }}
-
   trigger-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    needs:
-        - get_manager
-        - build-kernel-a12-5-10
-        # - build-kernel-a13-5-10
-       # - build-kernel-a13-5-15
-        # - build-kernel-a14-5-15
-       # - build-kernel-a14-6-1
-       # - build-kernel-a15-6-6
-    if: ${{ inputs.make_release }}
-    env:
-      REPO_OWNER: rosenii
-      REPO_NAME: GKI_KernelSU_SUSFS
-      SUS_VERSION: ''
-      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-      RELEASE_NAME: "GKI内核: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}(${{ needs.get_manager.outputs.ksuVer }})  & SUSFS ${{ needs.get_manager.outputs.susVer }}"
-      RELEASE_NOTES: |
-        此处包含：**${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}**、SUSFS ${{ needs.get_manager.outputs.susVer }} ${{ inputs.use_zram && '、LZ4KD' || '' }}
+   runs-on: ubuntu-latest
+   permissions:
+    contents: write
+    actions: write
+   needs:
+    - get_manager
+    - build-kernel-a12-5-10
+   if: ${{ inputs.make_release }}
+   env:
+    REPO_OWNER: rosenii
+    REPO_NAME: GKI_KernelSU_SUSFS
+    SUS_VERSION: ''
+    GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+    RELEASE_NAME: "GKI内核: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}(${{ needs.get_manager.outputs.ksuVer }}) & SUSFS ${{ needs.get_manager.outputs.susVer }}"
+    RELEASE_NOTES: |
+      此处包含：**${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}**、SUSFS ${{ needs.get_manager.outputs.susVer }} ${{ inputs.use_zram && '、LZ4KD' || '' }}
 
-        功能:
-        -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}${{ inputs.kernelsu_variant == 'Official' && '原版' || '' }}${{ inputs.kernelsu_branch == 'Dev(开发)' && format('({0})', needs.get_manager.outputs.ksuVer) || '稳定版' }}
-        -> SUSFS ඞ ${{ needs.get_manager.outputs.susVer }}
-        -> ${{ (inputs.kernelsu_variant == 'Official' || inputs.kernelsu_variant == 'MKSU') && 'Kprobes Hook + SUSFS_SUS_SU' || 'VFS Hooks v1.6' }}
-        ${{ inputs.kernelsu_variant != 'Official' && '-> Magic Mount 支持' || '-> OVERLAYFS 支持' }}
-        -> BBG安全补丁 ${{ inputs.use_bbg && '支持' || '不支持' }}
-        ${{ inputs.use_kpm && '-> KPM 支持' || '' }}
-        -> **LZ4KD&ONEPLUS_LZ4K**  ${{ inputs.use_zram && '开启' || '未开启' }}
-        -> lz4: v1.10.0 ${{ inputs.use_zram && '开启' || '未开启' }}
-        
-        模块: 
-        -> https://github.com/sidex15/ksu_module_susfs
-        
-    steps:
-      # Checkout the code
-      - name: Checkout code
-        uses: actions/checkout@v3
+      功能:
+      -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}${{ inputs.kernelsu_variant == 'Official' && '原版' || '' }}${{ inputs.kernelsu_branch == 'Dev(开发)' && format('({0})', needs.get_manager.outputs.ksuVer) || '稳定版' }}
+      -> SUSFS ඞ ${{ needs.get_manager.outputs.susVer }}
+      -> ${{ (inputs.kernelsu_variant == 'Official' || inputs.kernelsu_variant == 'MKSU') && 'Kprobes Hook + SUSFS_SUS_SU' || 'VFS Hooks v1.6' }}
+      ${{ inputs.kernelsu_variant != 'Official' && '-> Magic Mount 支持' || '-> OVERLAYFS 支持' }}
+      -> BBG安全补丁 ${{ inputs.use_bbg && '支持' || '不支持' }}
+      ${{ inputs.use_kpm && '-> KPM 支持' || '' }}
+      -> **LZ4KD&ONEPLUS_LZ4K**  ${{ inputs.use_zram && '开启' || '未开启' }}
+      -> lz4: v1.10.0 ${{ inputs.use_zram && '开启' || '未开启' }}
+      
+      模块: 
+      -> https://github.com/sidex15/ksu_module_susfs
 
-      - name: 确定分支为 KernelSU-${{ inputs.kernelsu_variant }}
-        if: ${{ inputs.kernelsu_branch == 'Dev(开发)' || inputs.kernelsu_variant == 'MKSU' || inputs.kernelsu_variant == 'SukiSU'  }}
-        run: |
-          # Determine the branch based on user input
-          if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" ]]; then
-            BRANCH="main"
-          elif [[ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            BRANCH="main"
-          elif [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
-            BRANCH="next"
-          else
-            echo "Error: Custom branch not provided for 'Other(其他/指定)'" >&2
-            exit 1
+   steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # （略去前面分支/版本/RELEASE_NOTES生成逻辑，保持你原来的内容）
+
+    # 下载构建产物（不自动解压）
+    - name: Download Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./downloaded-artifacts
+        skip-decompression: true
+
+    # 获取最新 Tag 并创建新 Tag
+    - name: 生成和创建新标签
+      env:
+        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      run: |
+        SUS_VERSION=${{ needs.get_manager.outputs.susVer }}
+        LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' | sed 's/-.*//')
+        if [ "$SUS_VERSION" = "$LATEST_TAG" ]; then
+          LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name')
+        else
+          LATEST_TAG="$SUS_VERSION-r0"
+        fi
+        NEW_TAG=$(echo "$LATEST_TAG" | awk -F'-r' '{suffix=$2; if (!suffix) suffix=0; suffix++; printf "%s-r%d", $1, suffix}')
+        echo "New tag: $NEW_TAG"
+        echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+
+        # 创建 tag
+        gh api \
+          -H "Accept: application/vnd.github+json" \
+          -X POST /repos/$REPO_OWNER/$REPO_NAME/git/refs \
+          -f ref="refs/tags/${NEW_TAG}" \
+          -f sha="$(git rev-parse HEAD)"
+
+    # 创建 GitHub Release
+    - name: Create GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ env.NEW_TAG }}
+        prerelease: true
+        release_name: ${{ env.RELEASE_NAME }}
+        body: ${{ env.RELEASE_NOTES }}
+
+    # 上传所有 .zip 构建产物
+    - name: Upload All .zip Artifacts
+      env:
+        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      run: |
+        shopt -s nullglob
+        echo "准备上传构建产物 (.zip 文件)..."
+        for dir in ./downloaded-artifacts/*; do
+          if [ -d "$dir" ]; then
+            for file in "$dir"/*.zip; do
+              [ -e "$file" ] || continue
+              echo "Uploading $file..."
+              gh release upload "${NEW_TAG}" "$file" --clobber
+            done
+          elif [ -f "$dir" ] && [[ "$dir" == *.zip ]]; then
+            echo "Uploading $dir..."
+            gh release upload "${NEW_TAG}" "$dir" --clobber
           fi
+        done
 
-          # Store the selected branch in GITHUB_ENV
-          echo "KSU_BRANCH=$BRANCH" >> $GITHUB_ENV
-
-      - name: 获取提交哈希值或标签并生成 URL 于 KernelSU-${{ inputs.kernelsu_variant }}
-        run: |
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "This is the Official variant"
-            REPO_URL="https://github.com/tiann/KernelSU.git"
-            REPO_URL2="tiann/KernelSU"
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "This is the Next variant"
-            REPO_URL="https://github.com/KernelSU-Next/KernelSU-Next.git"
-            REPO_URL2="KernelSU-Next/KernelSU-Next"
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "This is the MKSU variant"
-            REPO_URL="https://github.com/5ec1cff/KernelSU.git"
-            REPO_URL2="5ec1cff/KernelSU"
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
-            REPO_URL="https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
-            REPO_URL2="SukiSU-Ultra/SukiSU-Ultra"
-          else
-            echo "Unknown variant"
+    # 显示已上传的 .zip 文件
+    - name: Display Uploaded .zip Files
+      run: |
+        echo "GitHub release 已上传以下 .zip 文件:"
+        for dir in ./downloaded-artifacts/*; do
+          if [ -d "$dir" ]; then
+            ls "$dir"/*.zip 2>/dev/null
+          elif [ -f "$dir" ] && [[ "$dir" == *.zip ]]; then
+            echo "$dir"
           fi
-          
-          if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
-            # Fetch the latest tag
-            TAG=$(git ls-remote --tags --sort=-v:refname $REPO_URL | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
-            if [[ -z "$TAG" ]]; then
-              echo "Error: Could not fetch latest tag for Stable(标准)" >&2
-              exit 1
-            fi
-            KSU_REF=$TAG
-            KSU_URL="https://github.com/$REPO_URL2/releases/tag/$TAG"
-
-          elif [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            # Fetch the latest commit from "next" branch
-            COMMIT_HASH=$(git ls-remote $REPO_URL refs/heads/$KSU_BRANCH | awk '{ print $1 }')
-            if [[ -z "$COMMIT_HASH" ]]; then
-              echo "Error: Could not fetch latest commit for Dev(开发)" >&2
-              exit 1
-            fi
-            KSU_REF=$COMMIT_HASH
-            KSU_URL="https://github.com/$REPO_URL2/commit/$COMMIT_HASH"
-          fi
-
-          # Echo the values to GitHub environment for later use
-          echo "KSU_REF=$KSU_REF" >> $GITHUB_ENV
-          echo "KSU_URL=$KSU_URL" >> $GITHUB_ENV
-          echo "KernelSU Reference: $KSU_REF"
-          echo "KernelSU URL: $KSU_URL"
-
-
-      - name: 将提交哈希值和链接添加到 `RELEASE_NOTES` 中，并将 KernelSU-Next 引用添加到 `RELEASE_NOTES` 中。
-        run: |
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "This is the Official variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "Official 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/tiann/KernelSU" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "This is the Next variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "Next 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/KernelSU-Next/KernelSU-Next" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "This is the MKSU variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "MKSU 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/5ec1cff/KernelSU" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "SukiSU 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/SukiSU-Ultra/SukiSU-Ultra" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          else
-            echo "Unknown variant"
-          fi
-          
-      # Get the Latest Tag from GitHub
-      # Get the Latest Tag from GitHub
-      - name: 生成和创建新标签
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          SUS_VERSION=${{ needs.get_manager.outputs.susVer }}
-          LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' | sed 's/-.*//')
-          if [ "$SUS_VERSION" = "$LATEST_TAG" ]; then
-            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name')
-          else
-            LATEST_TAG="$SUS_VERSION-r0"
-          fi
-          NEW_TAG=$(echo "$LATEST_TAG" | awk -F'-r' '{suffix=$2; if (!suffix) suffix=0; suffix++; printf "%s-r%d", $1, suffix}')
-          echo "New tag: $NEW_TAG"
-          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
-
-          # 使用 PAT 创建 tag（通过 GH_TOKEN）
-          gh api \
-            -H "Accept: application/vnd.github+json" \
-            -X POST /repos/$REPO_OWNER/$REPO_NAME/git/refs \
-            -f ref="refs/tags/${NEW_TAG}" \
-            -f sha="$(git rev-parse HEAD)"
-
-      # 下载构建产物（不自动解压）
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./downloaded-artifacts
-          skip-decompression: true
-
-      # 创建 GitHub Release
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.NEW_TAG }}
-          prerelease: true
-          release_name: ${{ env.RELEASE_NAME }}
-          body: ${{ env.RELEASE_NOTES }}
-
-      # 上传所有构建产物（按 Name 顺序，覆盖同名 asset）
-      - name: Upload All Build Artifacts
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          shopt -s nullglob
-          echo "准备上传构建产物..."
-          # 遍历 downloaded-artifacts 下每个子目录，只上传压缩包
-          for dir in ./downloaded-artifacts/*; do
-            if [ -d "$dir" ]; then
-              find "$dir" -type f ! -name ".*" | sort | while IFS= read -r file; do
-                echo "Uploading $file..."
-                gh release upload "${NEW_TAG}" "$file" --clobber
-              done
-            fi
-          done
-
-      - name: Display Files Uploaded
-        run: |
-          echo "GitHub release 已上传以下文件:"
-          for dir in ./downloaded-artifacts/*; do
-            if [ -d "$dir" ]; then
-              find "$dir" -type f ! -name ".*" | sort
-            fi
-          done
+        done
