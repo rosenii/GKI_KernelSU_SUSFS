@@ -2,14 +2,14 @@ name: Auto Trigger on SukiSU Update
 
 on:
   schedule:
-    - cron: '0 0 */2 * *'  # 每两天执行一次
+    - cron: '0 19 * * *'  # 每两天执行一次
   workflow_dispatch:     # 允许手动触发
 
 jobs:
   check-and-trigger:
     runs-on: ubuntu-latest
     # 如果要运行自动编译工作流，请手动添加/修改仓库所有者用户名
-    if: contains(fromJSON('["zzh20188", "elysias123"]'), github.repository_owner)
+    if: contains(fromJSON('["rosenii", "elysias123"]'), github.repository_owner)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -98,9 +98,9 @@ jobs:
                 "kernelsu_variant": "SukiSU",
                 "kernelsu_branch": "Stable(标准)",
                 "version": "",
-                "use_zram": "false",
+                "use_zram": "true",
                 "use_bbg": "true",
-                "use_kpm": "true",
+                "use_kpm": "false",
                 "get_manager": "true"
               }
             }'
