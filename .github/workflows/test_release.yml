@@ -329,8 +329,8 @@ jobs:
         continue-on-error: true
         run: |
             echo "Uploading KSU管理器"
-            gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/*Manager*/*"
-            gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/susfs-*/*"
+            gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/*Manager*/*" --clobber
+            gh release upload ${{ env.NEW_TAG }} "./downloaded-artifacts/susfs-*/*" --clobber
 
       - name: 动态上传发布资产
         run: |
@@ -342,7 +342,7 @@ jobs:
 
               # Upload the file to the GitHub release
               echo "Uploading $file..."
-              gh release upload ${{ env.NEW_TAG }} "$file"
+              gh release upload ${{ env.NEW_TAG }} "$file" --clobber
           done
 
       # Display Files Uploaded
