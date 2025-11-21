@@ -46,9 +46,9 @@ on:
         type: boolean
         default: true
       use_kpm:
-        required: true
+        required: false
         type: boolean
-        default: true
+        default: false
       supp_op:
         required: true
         type: boolean
