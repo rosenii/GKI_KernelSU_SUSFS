@@ -219,19 +219,6 @@ jobs:
             patch -p1 < fix_5.15.legacy.patch
           fi
 
-      - name: 使GKI在一加8E平台正常使用
-        if: ${{ inputs.supp_op }}
-        run: |
-          echo '切换到驱动目录'
-          cd "$CONFIG/common/drivers/"
-          echo '当前目录$(pwd),下载支持补丁'
-          curl -LSs "https://github.com/zzh20188/GKI_KernelSU_SUSFS/raw/refs/heads/dev/hmbird_patch.c" -o hmbird_patch.c
-          if [ ! -f hmbird_patch.c ]; then
-            echo "hmbird_patch.c 下载失败"
-          fi
-          echo '补丁加入构建'
-          echo "obj-y += hmbird_patch.o" >> Makefile
-          tail -n 3 Makefile
       
       - name: 确定 KernelSU 的分支
         run: |
@@ -270,111 +257,6 @@ jobs:
               ;;
           esac
 
-      - name: 添加 KernelSU
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG"
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "Adding KernelSU Official..."
-            curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash $BRANCH
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "Adding KernelSU Next..."
-            curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash $BRANCH
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "Adding KernelSU MKSU..."
-            curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash $BRANCH
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Adding KernelSU SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
-          fi
-      
-      - name: SUKISU管理器信息
-        if: ${{ inputs.kernelsu_variant == 'SukiSU' }}
-        run: |
-          if [ ! -z "${{ vars.MANAGER_STR }}" ]; then
-            cd "$CONFIG"
-            cd ./KernelSU
-            sed -i 's/\(v\$1-\).*\(@\$\)/\1${{ vars.MANAGER_STR }}\2/' ./kernel/Makefile 
-            sed -n '50,70p' ./kernel/Makefile
-          fi
-
-      - name: 为 KernelSU 变体安装 SUSFS 补丁
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG"
-
-          echo "Applying SUSFS patches..."
-
-          # Copy SUSFS patches
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./common/
-          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "Applying SUSFS patches for Official KernelSU..."
-            cd ./KernelSU
-            cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./ 
-            patch -p1 --forward < 10_enable_susfs_for_ksu.patch || true
-
-            # echo "Applying Official specific patches..."
-            # cp ../../zzh_patch/mksu_core_hook.c.patch ./
-            # patch -p1 --fuzz=3 < mksu_core_hook.c.patch
-
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            # 临时恢复KSU-NEXT的dev编译
-            echo "Applying SUSFS patches for KernelSU-Next..."
-            cd ./KernelSU-Next
-            if [ "$BRANCH" == "-s next" ]; then
-              echo "当前为Dev分支的KernelSU-Next"
-              cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
-              patch -p1 < 10_enable_susfs_for_ksu.patch || true
-              echo "应用临时修复补丁"
-              cp ../../zzh_patch/next-patch/* ./
-              patch -p1 < fix_apk_sign.c.patch
-              patch -p1 < fix_core_hook.c.patch
-              patch -p1 < fix_sucompat.c.patch
-              patch -p1 < fix_kernel_compat.c.patch
-            fi
-            
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "Applying SUSFS patches for MKSU..."
-            cd ./KernelSU
-
-            cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
-            patch -p1 --forward < 10_enable_susfs_for_ksu.patch || true
-
-            # echo "Applying MKSU specific patches..."
-            # cp ../../zzh_patch/mksu_core_hook.c.patch ./
-            # patch -p1 --fuzz=3 < mksu_core_hook.c.patch
-
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Applying SUSFS patches for SukiSU..."
-            cd ./KernelSU
-            echo "Applying SukiSU specific SUSFS patch..."
-          else
-            echo "Invalid KernelSU variant selected!"
-            exit 1
-          fi
-
-          cd ../common
-
-
-          patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-
-          # if [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-          #   cp ../../zzh_patch/rm_devpt.patch ./
-          #   patch -p1 < rm_devpt.patch
-          # fi
-
-          FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
-          if grep -q deprecated <<< "$REMOTE_BRANCH" && \
-             { [ "$FORMATTED_BRANCH" == "android12-5.10" ] && \
-               [ ${{ inputs.sub_level }} -lt 136 ]; }; then
-            cp ../../zzh_patch/5.10-patch/fdinfo.c.patch ./
-            patch -p1 < fdinfo.c.patch
-          fi
-  
       - name: 一些修复补丁
         run: |
           cd "$CONFIG/common"
@@ -409,17 +291,7 @@ jobs:
               fi
             fi
           fi
-  
-      - name: 应用新的HOOKS补丁
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG/common"
 
-          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "Applying hooks for KernelSU-Next..."
-            cp ../../kernel_patches/next/scope_min_manual_hooks_v1.4.patch ./
-            patch -p1 -F 3 < scope_min_manual_hooks_v1.4.patch
-          fi
       
       - name: 升级LZ4至1.10.0
         if: ${{ inputs.use_zram }}
@@ -581,45 +453,6 @@ jobs:
             echo "SUCCESS: baseband_guard found in security configuration"
             grep "baseband_guard" common/security/Kconfig
           fi
-
-      - name: 添加SUSFS配置设置
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG"
-          echo "Adding configuration settings to gki_defconfig..."
-
-          # Add KSU configuration settings
-          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./common/arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
-          
-          # Add SUSFS configuration settings
-          echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
-          # Remove check_defconfig
-          sed -i 's/check_defconfig//' ./common/build.config.gki
-
-          # 用于debug config
-          tail -n 40 ./common/arch/arm64/configs/gki_defconfig
 
       - name: 配置内核构时间/删除dirty字符
         run: |
