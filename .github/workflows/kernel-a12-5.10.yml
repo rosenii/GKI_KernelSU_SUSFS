@@ -67,7 +67,7 @@ jobs:
         - sub_level: "240"
           os_patch_level: "2025-09"
         
-    uses: ./.github/workflows/gki-pure.yml
+    uses: ./.github/workflows/gki-kernel.yml
     secrets: inherit
     with:
       make_release: ${{ inputs.make_release || false }}
