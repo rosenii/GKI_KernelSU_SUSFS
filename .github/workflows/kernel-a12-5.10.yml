@@ -48,7 +48,7 @@ on:
         default: true
       build_time:
         description: '设置内核构建时间(格式见仓库说明)'
-        required: true
+        required: false
         type: string
       
   
